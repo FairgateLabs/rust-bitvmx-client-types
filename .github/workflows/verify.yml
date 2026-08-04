@@ -35,7 +35,12 @@ jobs:
             --tag ${{ steps.source_tag.outputs.tag }}
 
       - name: Fail on hand edits to generated files
-        run: git -C mirror diff --exit-code
+        run: |
+          status=$(git -C mirror status --porcelain)
+          if [ -n "$status" ]; then
+            echo "$status"
+            exit 1
+          fi
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
