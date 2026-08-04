@@ -1,0 +1,45 @@
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out mirror
+        uses: actions/checkout@v4
+        with:
+          path: mirror
+
+      - name: Read source_tag from mirror.toml
+        id: source_tag
+        run: |
+          tag=$(grep '^source_tag' mirror/mirror.toml | cut -d '"' -f2)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out client at source_tag
+        uses: actions/checkout@v4
+        with:
+          repository: FairgateLabs/rust-bitvmx-client
+          ref: ${{ steps.source_tag.outputs.tag }}
+          path: client
+
+      - name: Regenerate mirror from client
+        run: |
+          python3 client/scripts/mirror.py \
+            --client-dir client \
+            --out mirror \
+            --tag ${{ steps.source_tag.outputs.tag }}
+
+      - name: Fail on hand edits to generated files
+        run: git -C mirror diff --exit-code
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cargo test
+        run: cargo test
+        working-directory: mirror
