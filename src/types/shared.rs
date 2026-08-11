@@ -1,15 +1,16 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.0
+// Source: rust-bitvmx-client @ v0.8.1
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
 
-use std::str::FromStr;
+use std::{net::IpAddr, str::FromStr};
 
 use bitcoin::{
     address::NetworkUnchecked, Address, BlockHash, PrivateKey, PublicKey, Transaction, Txid,
 };
 use bitcoin_coordinator::TransactionStatus;
+use bitvmx_broker::identification::identifier::PubkHash;
 use bitvmx_wallet::wallet::Destination;
 use protocol_builder::types::Utxo;
 use redact::Secret;
@@ -66,6 +67,10 @@ pub enum IncomingBitVMXApiMessages {
     GetFundingBalance(Uuid),
     SendFunds(Uuid, Destination, Option<u64>),
     GetProtocolVisualization(Uuid),
+    ListAllowList(Uuid),
+    AddToAllowList(Uuid, PubkHash, Option<IpAddr>), // An absent address matches any source IP.
+    RemoveFromAllowList(Uuid, PubkHash),
+    SetAllowAll(Uuid, bool), // Blanket accept-everyone. Independent of the entries above.
     Shutdown(),
 }
 impl IncomingBitVMXApiMessages {
@@ -120,6 +125,11 @@ pub enum OutgoingBitVMXApiMessages {
     ProtocolVisualization(Uuid, String),
     SetInput(Vec<u8>),
     NewBlock(BlockHash, u32),
+    // Comms allow list: entries, then the blanket allow_all flag.
+    AllowListEntries(Uuid, Vec<(PubkHash, Option<IpAddr>)>, bool),
+    // A mutation was applied. `false` means it could not be persisted and will
+    // not survive a restart.
+    AllowListUpdated(Uuid, bool),
 }
 
 impl OutgoingBitVMXApiMessages {
@@ -284,6 +294,8 @@ impl OutgoingBitVMXApiMessages {
             }
             OutgoingBitVMXApiMessages::SetInput(_) => "SetInput".to_string(),
             OutgoingBitVMXApiMessages::NewBlock(_, _) => "NewBlock".to_string(),
+            OutgoingBitVMXApiMessages::AllowListEntries(_, _, _) => "AllowListEntries".to_string(),
+            OutgoingBitVMXApiMessages::AllowListUpdated(_, _) => "AllowListUpdated".to_string(),
         }
     }
 }
