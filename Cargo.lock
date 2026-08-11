@@ -468,7 +468,7 @@ dependencies = [
 [[package]]
 name = "bitcoin-coordinator"
 version = "0.8.1"
-source = "git+https://github.com/FairgateLabs/rust-bitvmx-bitcoin?tag=v0.8.1#5dfefb5cab139cabfc36277539ade57330da7a5d"
+source = "git+https://github.com/FairgateLabs/rust-bitvmx-bitcoin?branch=dev#62fcfcd1ef10de6274eb6050b27fab49b4ff6741"
 dependencies = [
  "anyhow",
  "bitcoin 0.32.102",
@@ -489,7 +489,6 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.19",
  "tracing",
- "tracing-subscriber",
  "uuid",
 ]
 
