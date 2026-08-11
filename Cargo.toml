@@ -17,9 +17,7 @@ bitvmx-key-manager = { git = "https://github.com/FairgateLabs/rust-bitvmx-key-ma
 bitvmx-protocol-builder = { git = "https://github.com/FairgateLabs/rust-bitvmx-protocol-builder.git", tag = "v0.8.1" }
 bitcoin-coordinator = { git = "https://github.com/FairgateLabs/rust-bitvmx-bitcoin", tag = "v0.8.1" }
 bitvmx-wallet = { git = "https://github.com/FairgateLabs/rust-bitvmx-wallet.git", tag = "v0.8.1" }
-bitvmx-broker = { git = "https://github.com/FairgateLabs/rust-bitvmx-broker.git", features = [
-    "storagebackend",
-], tag = "v0.8.1" }
+bitvmx-broker = { git = "https://github.com/FairgateLabs/rust-bitvmx-broker.git", tag = "v0.8.1" }
 
 [dev-dependencies]
 hex = "0.4.3"
