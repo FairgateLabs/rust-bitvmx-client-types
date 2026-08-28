@@ -21,7 +21,7 @@ bitvmx-broker = { git = "https://github.com/FairgateLabs/rust-bitvmx-broker.git"
 
 [dev-dependencies]
 hex = "0.4.3"
-tracing-subscriber = { version = "=0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [features]
 testpanic = []
