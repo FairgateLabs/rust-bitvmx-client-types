@@ -1,4 +1,4 @@
-source_tag = "v0.8.2"
+source_tag = "v0.8.4"
 
 [files]
 "src/types/shared.rs" = 321
