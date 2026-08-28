@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.1
+// Source: rust-bitvmx-client @ v0.8.2
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
@@ -81,6 +81,17 @@ impl IncomingBitVMXApiMessages {
 
 type ProgramId = Uuid;
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum SetupFailureReason {
+    StepError(String),
+    /// The sender's key was still missing on the final attempt.
+    VerificationKeyMissing,
+    /// A message from the sender ran out of retries.
+    MessageLost,
+    /// A message addressed to this peer could not be delivered.
+    Undeliverable,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum OutgoingBitVMXApiMessages {
     Pong(Uuid),
@@ -96,6 +107,8 @@ pub enum OutgoingBitVMXApiMessages {
     SpeedUpProgramNoFunds(),
     // Setup Completed,
     SetupCompleted(ProgramId),
+    // Setup could not be completed. Terminal: no further messages arrive for this program.
+    SetupFailed(ProgramId, String, Option<PubkHash>, SetupFailureReason), // id, step, peer involved, reason
     // Add response types for the new messages if needed
     AggregatedPubkey(Uuid, PublicKey),
     AggregatedPubkeyNotReady(Uuid),
@@ -260,6 +273,7 @@ impl OutgoingBitVMXApiMessages {
                 "SpeedUpProgramNoFunds".to_string()
             }
             OutgoingBitVMXApiMessages::SetupCompleted(_) => "SetupCompleted".to_string(),
+            OutgoingBitVMXApiMessages::SetupFailed(_, _, _, _) => "SetupFailed".to_string(),
             OutgoingBitVMXApiMessages::AggregatedPubkey(_, _) => "AggregatedPubkey".to_string(),
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(_) => {
                 "AggregatedPubkeyNotReady".to_string()
