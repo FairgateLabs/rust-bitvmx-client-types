@@ -1,10 +1,10 @@
-source_tag = "v0.8.4"
+source_tag = "608b81885a40d424717f18a31db0c5f9c16fa102"
 
 [files]
-"src/types/shared.rs" = 321
+"src/types/shared.rs" = 322
 "src/spv_proof.rs" = 501
 "src/program/participant.rs" = 726
 "src/program/variables/shared.rs" = 178
-"src/program/protocols/union/types.rs" = 388
+"src/program/protocols/union/types.rs" = 393
 "src/program/protocols/union/common/shared.rs" = 136
-"src/program/protocols/union/transport.rs" = 133
+"src/program/protocols/union/transport.rs" = 128

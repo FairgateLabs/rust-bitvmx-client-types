@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.4
+// Source: rust-bitvmx-client @ 608b81885a40d424717f18a31db0c5f9c16fa102
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
@@ -16,10 +16,9 @@ use crate::{
 use super::types::{
     AdvanceFundsRegistered, AdvanceFundsRequest, Committee, DisputeCoreData, FullPenalizationData,
     FundsAdvanceSPV, FundsAdvanced, InitData, PegInRequest, PegOutAccepted, PegOutRequest,
-    PenalizedMember, RejectPeginData, UnionSPVNotification, UnionSettings, ADVANCE_FUNDS_REQUEST,
-    COMMITTEE, DISPUTE_CORE_DATA, FULL_PENALIZATION_DATA, FUNDS_ADVANCED, FUNDS_ADVANCE_SPV,
-    INIT_DATA, PEGIN_REQUEST, PEGOUT_ACCEPTED, PEGOUT_REQUEST, REJECT_PEGIN_DATA, UNION_SETTINGS,
-    UNION_SPV_NOTIFICATION,
+    PenalizedMember, RejectPeginData, UnionSPVNotification, ADVANCE_FUNDS_REQUEST, COMMITTEE,
+    DISPUTE_CORE_DATA, FULL_PENALIZATION_DATA, FUNDS_ADVANCED, FUNDS_ADVANCE_SPV, INIT_DATA,
+    PEGIN_REQUEST, PEGOUT_ACCEPTED, PEGOUT_REQUEST, REJECT_PEGIN_DATA, UNION_SPV_NOTIFICATION,
 };
 
 /// Transport for union messages carried over `IncomingBitVMXApiMessages::SetVar`/`GetVar`.
@@ -93,10 +92,6 @@ impl UnionMessage for UnionSPVNotification {
 
 impl UnionMessage for FullPenalizationData {
     const KEY: &'static str = FULL_PENALIZATION_DATA;
-}
-
-impl UnionMessage for UnionSettings {
-    const KEY: &'static str = UNION_SETTINGS;
 }
 
 impl AdvanceFundsRegistered {

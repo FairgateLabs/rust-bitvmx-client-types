@@ -6,7 +6,7 @@
 use bitvmx_client_types::{
     AdvanceFundsRequest, Committee, DisputeCoreData, FullPenalizationData, FundsAdvanceSPV,
     FundsAdvanced, InitData, PegInRequest, PegOutAccepted, PegOutRequest, RejectPeginData,
-    UnionMessage, UnionSPVNotification, UnionSettings,
+    UnionMessage, UnionSPVNotification,
 };
 
 #[test]
@@ -23,5 +23,4 @@ fn key_matches_name() {
     assert_eq!(FundsAdvanceSPV::KEY, FundsAdvanceSPV::name());
     assert_eq!(UnionSPVNotification::KEY, UnionSPVNotification::name());
     assert_eq!(FullPenalizationData::KEY, FullPenalizationData::name());
-    assert_eq!(UnionSettings::KEY, UnionSettings::name());
 }

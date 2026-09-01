@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.4
+// Source: rust-bitvmx-client @ 608b81885a40d424717f18a31db0c5f9c16fa102
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
