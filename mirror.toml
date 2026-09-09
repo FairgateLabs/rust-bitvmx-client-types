@@ -1,10 +1,10 @@
-source_tag = "v0.8.2"
+source_tag = "v0.8.5"
 
 [files]
-"src/types/shared.rs" = 321
-"src/spv_proof.rs" = 501
-"src/program/participant.rs" = 726
-"src/program/variables/shared.rs" = 178
-"src/program/protocols/union/types.rs" = 388
-"src/program/protocols/union/common/shared.rs" = 136
-"src/program/protocols/union/transport.rs" = 133
+"src/types/shared.rs" = "c708bf41768df356fff80f5a6ca0b20c95cd4654603bf652fc29c8abd1c8c867"
+"src/spv_proof.rs" = "fac503c6beed1842786976ce4dea6d4adaca9c6ded31927c6cda34389f54ddde"
+"src/program/participant.rs" = "f0cab87ae64e93f8e79524588753fc11ae9285293d4d5ffe708703d16190692f"
+"src/program/variables/shared.rs" = "d714b4f9550873d77561f931d50835d909193ff09d821805a8968e1458ce0a17"
+"src/program/protocols/union/types.rs" = "f220184f112f461728550b9b4001c04e33204afe51af4e2ad352877e94a7735f"
+"src/program/protocols/union/common/shared.rs" = "f7632eda5b7c2e5c01d66e8949693737753eef78bc7425582bd118583ae30aa3"
+"src/program/protocols/union/transport.rs" = "b0df2be6b9827de8a93eca803cf7d6385c68928b6bcc9a23705bba9244e54231"

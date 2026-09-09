@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.2
+// Source: rust-bitvmx-client @ v0.8.5
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
@@ -8,7 +8,6 @@ use bitcoin::{PublicKey, Txid};
 use key_manager::musig2::{secp::MaybeScalar, PubNonce};
 use protocol_builder::types::OutputType;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
@@ -34,6 +33,8 @@ pub const WT_CLAIM_SUCCESS_DISABLER_DIRECTORY_UTXO: &str =
 pub const OP_CLAIM_SUCCESS_DISABLER_DIRECTORY_UTXO: &str =
     "OP_CLAIM_SUCCESS_DISABLER_DIRECTORY_UTXO";
 pub const WT_INIT_CHALLENGE_UTXOS: &str = "WT_INIT_CHALLENGE_UTXOS";
+pub const CLAIM_INIT_UTXOS: &str = "CLAIM_INIT_UTXOS";
+pub const INPUT_NOT_REVEALED_ENABLER: &str = "INPUT_NOT_REVEALED_ENABLER";
 pub const OP_COSIGN_UTXOS: &str = "OP_COSIGN_UTXOS";
 pub const PAIRWISE_DISPUTE_KEY: &str = "PAIRWISE_DISPUTE_KEY";
 pub const OPERATOR_PENALIZED: &str = "OPERATOR_PENALIZED";
@@ -53,7 +54,6 @@ pub const FUNDS_ADVANCED: &str = "funds_advanced";
 pub const FUNDS_ADVANCE_SPV: &str = "funds_advance_spv";
 pub const UNION_SPV_NOTIFICATION: &str = "union_spv_notification";
 pub const FULL_PENALIZATION_DATA: &str = "full_penalization_data";
-pub const UNION_SETTINGS: &str = "union_settings";
 
 // Transaction names
 pub const REQUEST_PEGIN_TX: &str = "REQUEST_PEGIN_TX";
@@ -81,6 +81,7 @@ pub const WT_DISABLER_DIRECTORY_TX: &str = "WT_DISABLER_DIRECTORY_TX";
 pub const FUNDING_TX: &str = "FUNDING_TX";
 pub const WT_START_ENABLER_TX: &str = "WT_START_ENABLER_TX";
 pub const WT_INIT_CHALLENGE_TX: &str = "WT_INIT_CHALLENGE_TX";
+pub const CLAIM_INIT_TX: &str = "CLAIM_INIT_TX";
 pub const PROTOCOL_FUNDING_TX: &str = "PROTOCOL_FUNDING_TX";
 pub const WT_CLAIM_GATE: &str = "WT_CLAIM_GATE";
 pub const WT_CLAIM_GATE_SUCCESS: &str = "WT_CLAIM_GATE_SUCCESS";
@@ -90,6 +91,7 @@ pub const OP_COSIGN_TX: &str = "OP_COSIGN_TX";
 pub const OP_NO_COSIGN_TX: &str = "OP_NO_COSIGN_TX";
 pub const WT_NO_CHALLENGE_TX: &str = "WT_NO_CHALLENGE_TX";
 pub const STOP_OP_WON_TX: &str = "STOP_OP_WON_TX";
+pub const STOPPER_TX: &str = "STOPPER_TX";
 
 // Parameters
 pub const DUST_VALUE: u64 = 540;
@@ -110,8 +112,6 @@ pub const WT_DISABLER_DIRECTORY_UTXO: &str = "WT_DISABLER_DIRECTORY_UTXO";
 pub const OPERATOR: &str = "OP";
 pub const WATCHTOWER: &str = "WT";
 
-pub const GLOBAL_SETTINGS_UUID: Uuid = Uuid::from_bytes(*b"UNION_BRIDGE-000");
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemberData {
     pub role: ParticipantRole,
@@ -126,9 +126,7 @@ pub struct Committee {
     pub dispute_aggregated_key: PublicKey,
     pub packet_size: u32,
     pub stream_denomination: u64,
-    pub pegin_confirmations: u32,
-    pub pegout_confirmations: u32,
-    pub reject_pegin_confirmations: u32,
+    pub settings: PacketSettings,
 }
 
 impl Committee {
@@ -300,6 +298,7 @@ impl AdvanceFundsRegistered {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UnionTxType {
+    CancelUserTake,
     ReimbursementKickoff,
     OperatorTake,
     OperatorWon,
@@ -334,7 +333,10 @@ impl FullPenalizationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StreamSettings {
+pub struct PacketSettings {
+    pub pegin_confirmations: u32,
+    pub pegout_confirmations: u32,
+    pub reject_pegin_confirmations: u32,
     pub short_timelock: u16,
     pub long_timelock: u16,
     pub op_won_timelock: u16,
@@ -345,27 +347,32 @@ pub struct StreamSettings {
     pub request_pegin_timelock: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UnionSettings {
-    pub settings: HashMap<u64, StreamSettings>,
-}
-
-impl UnionSettings {
-    pub fn name() -> String {
-        UNION_SETTINGS.to_string()
+impl Default for PacketSettings {
+    fn default() -> Self {
+        Self {
+            pegin_confirmations: 6,
+            pegout_confirmations: 6,
+            reject_pegin_confirmations: 1,
+            short_timelock: 6,
+            long_timelock: 12,
+            op_won_timelock: 250,
+            claim_gate_timelock: 6,
+            input_not_revealed_timelock: 14,
+            op_no_cosign_timelock: 12,
+            wt_no_challenge_timelock: 12,
+            request_pegin_timelock: 12,
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WtInitChallengeOutputs {
-    pub op_cosign: OutputType,
+pub struct ClaimInitOutputs {
     pub wt_stopper: OutputType,
     pub op_stopper: OutputType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WtInitChallengeUtxos {
-    pub op_cosign: PartialUtxo,
+pub struct ClaimInitUtxos {
     pub wt_stopper: PartialUtxo,
     pub op_stopper: PartialUtxo,
 }
