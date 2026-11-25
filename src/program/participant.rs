@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.2
+// Source: rust-bitvmx-client @ v0.8.10
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
@@ -333,19 +333,26 @@ fn validate_pubkey_hash(pubkey_hash: &str) -> Result<(), String> {
 pub struct CommsAddress {
     pub address: SocketAddr,
     pub pubkey_hash: PubkHash,
+    /// Full comms RSA public key (PEM). Filled by `CommInfo` so L2 can encrypt for this node.
+    /// Empty when not provided.
+    pub pubkey_pem: String,
 }
 
 #[derive(Deserialize)]
 struct UncheckedCommsAddress {
     address: SocketAddr,
     pubkey_hash: PubkHash,
+    #[serde(default)]
+    pubkey_pem: String,
 }
 
 impl TryFrom<UncheckedCommsAddress> for CommsAddress {
     type Error = String;
 
     fn try_from(value: UncheckedCommsAddress) -> Result<Self, Self::Error> {
-        CommsAddress::try_new(value.address, value.pubkey_hash)
+        let mut address = CommsAddress::try_new(value.address, value.pubkey_hash)?;
+        address.pubkey_pem = value.pubkey_pem;
+        Ok(address)
     }
 }
 
@@ -356,6 +363,7 @@ impl CommsAddress {
         Self {
             address,
             pubkey_hash,
+            pubkey_pem: String::new(),
         }
     }
 
@@ -364,6 +372,7 @@ impl CommsAddress {
         Ok(Self {
             address,
             pubkey_hash,
+            pubkey_pem: String::new(),
         })
     }
 }
@@ -398,25 +407,20 @@ pub fn validate_participants(participants: &[CommsAddress]) -> Result<(), BitVMX
 pub fn get_comms_address_by_pubkey_hash(
     participants: &[CommsAddress],
     pubkey_hash: &PubkHash,
-) -> Result<CommsAddress, BitVMXError> {
-    for p in participants {
-        if &p.pubkey_hash == pubkey_hash {
-            return Ok(p.clone());
-        }
-    }
-    Err(BitVMXError::InvalidCommsAddress(pubkey_hash.clone()))
+) -> Option<CommsAddress> {
+    participants
+        .iter()
+        .find(|participant| &participant.pubkey_hash == pubkey_hash)
+        .cloned()
 }
 
 pub fn get_index_by_pubkey_hash(
     participants: &[CommsAddress],
     pubkey_hash: &PubkHash,
-) -> Result<usize, BitVMXError> {
-    for (i, p) in participants.iter().enumerate() {
-        if &p.pubkey_hash == pubkey_hash {
-            return Ok(i);
-        }
-    }
-    Err(BitVMXError::InvalidCommsAddress(pubkey_hash.clone()))
+) -> Option<usize> {
+    participants
+        .iter()
+        .position(|participant| &participant.pubkey_hash == pubkey_hash)
 }
 
 impl fmt::Display for CommsAddress {
@@ -533,6 +537,20 @@ mod tests {
         });
 
         assert!(serde_json::from_value::<CommsAddress>(value).is_err());
+    }
+
+    #[test]
+    fn serde_defaults_missing_pubkey_pem() {
+        let hash = "7005e4a0325b644baa2b66c3fa2ed2a795cae584b6d3a57ca45ebf5d0eb0011f";
+        let missing = serde_json::json!({ "address": "127.0.0.1:1000", "pubkey_hash": hash });
+        let legacy: CommsAddress = serde_json::from_value(missing).unwrap();
+        assert!(legacy.pubkey_pem.is_empty());
+
+        let mut address = CommsAddress::new("127.0.0.1:1000".parse().unwrap(), hash.to_string());
+        address.pubkey_pem = "pem".to_string();
+        let decoded: CommsAddress =
+            serde_json::from_value(serde_json::to_value(&address).unwrap()).unwrap();
+        assert_eq!(decoded, address);
     }
 
     #[test]
@@ -716,11 +734,11 @@ mod tests {
 
         let missing =
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
-        assert!(matches!(
+        assert_eq!(
             get_comms_address_by_pubkey_hash(&participants, &missing),
-            Err(BitVMXError::InvalidCommsAddress(hash)) if hash == missing
-        ));
-        assert!(get_index_by_pubkey_hash(&participants, &missing).is_err());
+            None
+        );
+        assert_eq!(get_index_by_pubkey_hash(&participants, &missing), None);
         assert!("127.0.0.1:1000".parse::<CommsAddress>().is_err());
         assert!(format!("not-an-address,{first_hash}")
             .parse::<CommsAddress>()
