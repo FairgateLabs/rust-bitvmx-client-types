@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Source: rust-bitvmx-client @ v0.8.2
+// Source: rust-bitvmx-client @ v0.8.11
 // Regenerate with scripts/mirror.py
 //! Shared with `rust-bitvmx-client-types` — this file is copied verbatim on release.
 //! Node-only code does not belong here; put it in the sibling `mod.rs`.
@@ -28,35 +28,139 @@ use crate::{
 pub use bitcoin_coordinator::OutputPatternFilter;
 pub const RSK_PEGIN_TAG: &[u8] = b"RSK_PEGIN";
 
+pub const REQUEST_PEGIN_OP_RETURN_LEN: usize = 70;
+
+pub const REQUEST_PEGIN_PUBKEY_OFFSET: usize = 37;
+
+pub fn request_pegin_op_return_data(
+    packet_number: u64,
+    rootstock_address: [u8; 20],
+    reimbursement_pubkey: &PublicKey,
+) -> Result<Vec<u8>, BitVMXError> {
+    if !reimbursement_pubkey.compressed {
+        return Err(BitVMXError::InvalidConversion(format!(
+            "reimbursement public key must be compressed, got {} bytes",
+            reimbursement_pubkey.to_bytes().len()
+        )));
+    }
+
+    let payload = [
+        RSK_PEGIN_TAG,
+        &packet_number.to_be_bytes(),
+        &rootstock_address,
+        &reimbursement_pubkey.to_bytes(),
+    ]
+    .concat();
+
+    Ok(payload)
+}
+
+#[cfg(test)]
+mod request_pegin_op_return_tests {
+    use super::*;
+    use std::str::FromStr;
+
+    const EVEN_PUBKEY_HEX: &str =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+    const ODD_PUBKEY_HEX: &str =
+        "03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556";
+
+    const PACKET_NUMBER: u64 = 42;
+    const ROOTSTOCK_ADDRESS: [u8; 20] = [7u8; 20];
+
+    fn expected_payload_hex(pubkey_hex: &str) -> String {
+        format!(
+            "{}{}{}{}",
+            "52534b5f504547494e",
+            "000000000000002a",
+            "07".repeat(20),
+            pubkey_hex
+        )
+    }
+
+    #[test]
+    fn even_parity_key_produces_expected_payload() {
+        let pubkey = PublicKey::from_str(EVEN_PUBKEY_HEX).unwrap();
+        let payload =
+            request_pegin_op_return_data(PACKET_NUMBER, ROOTSTOCK_ADDRESS, &pubkey).unwrap();
+
+        assert_eq!(payload.len(), REQUEST_PEGIN_OP_RETURN_LEN);
+        assert_eq!(hex::encode(&payload), expected_payload_hex(EVEN_PUBKEY_HEX));
+        assert_eq!(payload[REQUEST_PEGIN_PUBKEY_OFFSET], 0x02);
+
+        let round_tripped = PublicKey::from_slice(
+            &payload[REQUEST_PEGIN_PUBKEY_OFFSET..REQUEST_PEGIN_OP_RETURN_LEN],
+        )
+        .unwrap();
+        assert_eq!(round_tripped, pubkey);
+    }
+
+    #[test]
+    fn uncompressed_key_is_rejected() {
+        let mut pubkey = PublicKey::from_str(EVEN_PUBKEY_HEX).unwrap();
+        pubkey.compressed = false;
+
+        assert!(request_pegin_op_return_data(PACKET_NUMBER, ROOTSTOCK_ADDRESS, &pubkey).is_err());
+    }
+
+    #[test]
+    fn odd_parity_key_produces_expected_payload() {
+        let pubkey = PublicKey::from_str(ODD_PUBKEY_HEX).unwrap();
+        let payload =
+            request_pegin_op_return_data(PACKET_NUMBER, ROOTSTOCK_ADDRESS, &pubkey).unwrap();
+
+        assert_eq!(payload.len(), REQUEST_PEGIN_OP_RETURN_LEN);
+        assert_eq!(hex::encode(&payload), expected_payload_hex(ODD_PUBKEY_HEX));
+        assert_eq!(payload[REQUEST_PEGIN_PUBKEY_OFFSET], 0x03);
+
+        let round_tripped = PublicKey::from_slice(
+            &payload[REQUEST_PEGIN_PUBKEY_OFFSET..REQUEST_PEGIN_OP_RETURN_LEN],
+        )
+        .unwrap();
+        assert_eq!(round_tripped, pubkey);
+    }
+}
+
 //TODO: This should be moved to a common place that could be used to share the messages api
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum IncomingBitVMXApiMessages {
     Ping(Uuid),
     SetVar(Uuid, String, VariableTypes),
     SetWitness(Uuid, String, WitnessTypes),
-    SetFundingUtxo(Utxo),
+    SetFundingUtxo(Uuid, Utxo),
     GetVar(Uuid, String),
     GetWitness(Uuid, String),
     GetCommInfo(Uuid),
     GetTransaction(Uuid, Txid),
     GetTransactionInfoByName(Uuid, String),
     GetHashedMessage(Uuid, String, u32, u32),
-    Setup(ProgramId, String, Vec<CommsAddress>, u16),
+    /// Optional timeout is the overall setup budget in seconds.
+    Setup(ProgramId, String, Vec<CommsAddress>, u16, Option<u64>),
     SubscribeToTransaction(Uuid, Txid, Option<u32>),
-    SubscribeToOutputPattern(OutputPatternFilter, Option<u32>),
-    SubscribeToRskPegin(Option<u32>),
-    GetSPVProof(Txid),
+    SubscribeToSpendingUTXO(Uuid, Txid, u32, Option<u32>), // id, txid, vout, confirmation_threshold
+    SubscribeToOutputPattern(Uuid, OutputPatternFilter, Option<u32>),
+    SubscribeToRskPegin(Uuid, Option<u32>),
+    GetSPVProof(Uuid, Txid),
     DispatchTransaction(Uuid, Transaction, Option<u32>, Option<u32>), // id, transaction, confirmation_threshold, stuck_in_mempool_blocks
     DispatchTransactionName(Uuid, String),
-    SetupKey(Uuid, Vec<CommsAddress>, Option<Vec<PublicKey>>, u16),
+    /// Optional timeout is the overall setup budget in seconds.
+    SetupKey(
+        Uuid,
+        Vec<CommsAddress>,
+        Option<Vec<PublicKey>>,
+        u16,
+        Option<u64>,
+    ),
     GetAggregatedPubkey(Uuid),
     GetKeyPair(Uuid),
     GetPubKey(Uuid, bool),
     GetEvenPubKey(Uuid),
     SignMessage(Uuid, Vec<u8>, PublicKey), // id, payload_to_sign, public_key_to_use
-    GenerateZKP(Uuid, Vec<u8>, String),
-    ProofReady(Uuid),
+    /// Optional timeout is the prover job execution budget in seconds.
+    GenerateZKP(Uuid, Vec<u8>, String, Option<u64>),
     GetZKPExecutionResult(Uuid),
+    /// Stops automatic retries for an unresolved runtime dispatcher job.
+    DiscardDispatcherJob(Uuid, String, String), // request id, job id, reason
     Encrypt(Uuid, Vec<u8>, String),
     Decrypt(Uuid, Vec<u8>, String),
     #[serde(skip)]
@@ -68,10 +172,13 @@ pub enum IncomingBitVMXApiMessages {
     SendFunds(Uuid, Destination, Option<u64>),
     GetProtocolVisualization(Uuid),
     ListAllowList(Uuid),
-    AddToAllowList(Uuid, PubkHash, Option<IpAddr>), // An absent address matches any source IP.
+    // An absent address matches any source IP. Pass None for peers: a pinned IP must equal both
+    // the IP we dial (their public_address) and the source IP of their connections, which
+    // differ behind some NATs and multi-homed hosts. The key is still checked by TLS.
+    AddToAllowList(Uuid, PubkHash, Option<IpAddr>),
     RemoveFromAllowList(Uuid, PubkHash),
     SetAllowAll(Uuid, bool), // Blanket accept-everyone. Independent of the entries above.
-    Shutdown(),
+    Shutdown(Uuid),
 }
 impl IncomingBitVMXApiMessages {
     pub fn to_string(&self) -> Result<String, BitVMXError> {
@@ -80,6 +187,13 @@ impl IncomingBitVMXApiMessages {
 }
 
 type ProgramId = Uuid;
+
+#[derive(Eq, Hash, PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum JobDispatcherType {
+    ZKP,
+    Emulator,
+    Garbler,
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum SetupFailureReason {
@@ -90,6 +204,84 @@ pub enum SetupFailureReason {
     MessageLost,
     /// A message addressed to this peer could not be delivered.
     Undeliverable,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum ErrorScope {
+    Node,
+    Program(ProgramId),
+    /// Reports carrying this are answered to the requester, not to L2.
+    Request(Uuid),
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum ErrorReportKind {
+    /// Terminal: no further messages for this program, and its id cannot be reused.
+    SetupFailed {
+        step: String,
+        peer: Option<PubkHash>,
+        reason: SetupFailureReason,
+    },
+    JobDispatcherUnresponsive(JobDispatcherType),
+    JobDispatcherRecovered(JobDispatcherType),
+    /// A runtime-job attempt failed and entered durable retry; the program stays active.
+    JobFailed {
+        job_id: String,
+        dispatcher: JobDispatcherType,
+    },
+    /// Storage or the broker failed; the node is exiting. Best-effort: may not arrive.
+    Fatal,
+    NonFatal,
+    NodeStopping,
+    BitcoinRpcUnavailable,
+    BitcoinRpcRecovered,
+    TransactionDispatchFailed {
+        txid: Txid,
+    },
+    SpeedupDispatchFailed {
+        txid: Txid,
+    },
+    TransactionStuckInMempool {
+        txid: Txid,
+    },
+    FeeRateTooHigh {
+        estimated: u64,
+        max: u64,
+    },
+    MaxFeeRateReached {
+        txid: Txid,
+        effective_fee_rate: u64,
+    },
+    InsufficientFunds {
+        available: u64,
+        required: u64,
+    },
+    FundingNotAvailable,
+    InvalidFundingUtxo {
+        amount: u64,
+        min_required: u64,
+    },
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct ErrorReport {
+    pub scope: ErrorScope,
+    pub kind: ErrorReportKind,
+    pub detail: Option<String>,
+}
+
+impl ErrorReport {
+    pub fn new(scope: ErrorScope, kind: ErrorReportKind, detail: Option<String>) -> Self {
+        Self {
+            scope,
+            kind,
+            detail,
+        }
+    }
+
+    pub fn node(kind: ErrorReportKind) -> Self {
+        Self::new(ErrorScope::Node, kind, None)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -103,12 +295,10 @@ pub enum OutgoingBitVMXApiMessages {
     PeginTransactionFound(Txid, TransactionStatus),
     // Represents when a spending utxo transaction is found
     SpendingUTXOTransactionFound(Uuid, Txid, u32, TransactionStatus),
-    // Represents when a program is running out of funds
-    SpeedUpProgramNoFunds(),
     // Setup Completed,
     SetupCompleted(ProgramId),
-    // Setup could not be completed. Terminal: no further messages arrive for this program.
-    SetupFailed(ProgramId, String, Option<PubkHash>, SetupFailureReason), // id, step, peer involved, reason
+    // Unprompted error report, scoped by `ErrorScope`
+    Error(ErrorReport),
     // Add response types for the new messages if needed
     AggregatedPubkey(Uuid, PublicKey),
     AggregatedPubkeyNotReady(Uuid),
@@ -123,9 +313,9 @@ pub enum OutgoingBitVMXApiMessages {
     Witness(Uuid, String, WitnessTypes),
     NotFound(Uuid, String),
     HashedMessage(Uuid, String, u32, u32, String),
-    ProofReady(Uuid),
     ProofNotReady(Uuid),
     ProofGenerationError(Uuid, String),
+    JobDiscarded(Uuid, String), // request id, job id
     SPVProof(Txid, Option<BtcTxSPVProof>),
     Encrypted(Uuid, Vec<u8>),
     Decrypted(Uuid, Vec<u8>),
@@ -143,6 +333,7 @@ pub enum OutgoingBitVMXApiMessages {
     // A mutation was applied. `false` means it could not be persisted and will
     // not survive a restart.
     AllowListUpdated(Uuid, bool),
+    ApiError(Uuid, String),
 }
 
 impl OutgoingBitVMXApiMessages {
@@ -269,11 +460,8 @@ impl OutgoingBitVMXApiMessages {
             OutgoingBitVMXApiMessages::SpendingUTXOTransactionFound(_, _, _, _) => {
                 "SpendingUTXOTransactionFound".to_string()
             }
-            OutgoingBitVMXApiMessages::SpeedUpProgramNoFunds() => {
-                "SpeedUpProgramNoFunds".to_string()
-            }
             OutgoingBitVMXApiMessages::SetupCompleted(_) => "SetupCompleted".to_string(),
-            OutgoingBitVMXApiMessages::SetupFailed(_, _, _, _) => "SetupFailed".to_string(),
+            OutgoingBitVMXApiMessages::Error(_) => "Error".to_string(),
             OutgoingBitVMXApiMessages::AggregatedPubkey(_, _) => "AggregatedPubkey".to_string(),
             OutgoingBitVMXApiMessages::AggregatedPubkeyNotReady(_) => {
                 "AggregatedPubkeyNotReady".to_string()
@@ -289,11 +477,11 @@ impl OutgoingBitVMXApiMessages {
             OutgoingBitVMXApiMessages::Witness(_, _, _) => "Witness".to_string(),
             OutgoingBitVMXApiMessages::NotFound(_, _) => "NotFound".to_string(),
             OutgoingBitVMXApiMessages::HashedMessage(_, _, _, _, _) => "HashedMessage".to_string(),
-            OutgoingBitVMXApiMessages::ProofReady(_) => "ProofReady".to_string(),
             OutgoingBitVMXApiMessages::ProofNotReady(_) => "ProofNotReady".to_string(),
             OutgoingBitVMXApiMessages::ProofGenerationError(_, _) => {
                 "ProofGenerationError".to_string()
             }
+            OutgoingBitVMXApiMessages::JobDiscarded(_, _) => "JobDiscarded".to_string(),
             OutgoingBitVMXApiMessages::SPVProof(_, _) => "SPVProof".to_string(),
             OutgoingBitVMXApiMessages::BackupResult(_, _, _) => "BackupResult".to_string(),
             OutgoingBitVMXApiMessages::Encrypted(_, _) => "Encrypted".to_string(),
@@ -310,6 +498,7 @@ impl OutgoingBitVMXApiMessages {
             OutgoingBitVMXApiMessages::NewBlock(_, _) => "NewBlock".to_string(),
             OutgoingBitVMXApiMessages::AllowListEntries(_, _, _) => "AllowListEntries".to_string(),
             OutgoingBitVMXApiMessages::AllowListUpdated(_, _) => "AllowListUpdated".to_string(),
+            OutgoingBitVMXApiMessages::ApiError(_, _) => "ApiError".to_string(),
         }
     }
 }
